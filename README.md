@@ -4,7 +4,7 @@ This project is a .NET application that uses Azure Blob Storage for image handli
 
 ## Prerequisites
 
-- [.NET 6.0 SDK](https://dotnet.microsoft.com/download/dotnet/6.0) or later
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
 - An Azure account with an active subscription
 
 ## Setting up Azure Storage Account, Blob Container, and Table
