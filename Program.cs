@@ -1,9 +1,25 @@
+using Azure.Storage.Blobs;
+using SharedImage.Config;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Register BlobContainerClient
+builder.Services.AddSingleton(x =>
+{
+    var azureBlobStorageConfig = builder.Configuration.GetSection("AzureBlobStorage").Get<AzureBlobStorageConfig>();
+    if (azureBlobStorageConfig is null)
+    {
+        throw new InvalidOperationException("AzureBlobStorage configuration is missing.");
+    }
+    return new BlobContainerClient(
+        azureBlobStorageConfig.ConnectionString,
+        azureBlobStorageConfig.ContainerName);
+});
 
 var app = builder.Build();
 
