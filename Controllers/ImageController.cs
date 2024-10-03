@@ -6,6 +6,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using SharedImage.Entities;
 using Azure.Data.Tables;
+using Azure;
 
 namespace SharedImage.Controllers;
 
@@ -64,20 +65,35 @@ public class ImageController : ControllerBase
     [HttpGet("{hash}")]
     public async Task<IActionResult> GetMedia(string hash)
     {
-        // Retrieve the photo from Azure Blob Storage
-        BlobClient blobClient = containerClient.GetBlobClient(hash);
-        if (!await blobClient.ExistsAsync())
+        try
         {
-            return NotFound();
+            // Step 1: Try to retrieve the entity with the provided hash as the RowKey
+            var mediaEntity = await tableClient.GetEntityAsync<MediaEntity>("media", hash);
+
+            // Step 2: Fetch the media content type from the table storage entity
+            var contentType = mediaEntity.Value.ContentType;
+
+            // Step 3: Retrieve the media from Azure Blob Storage
+            BlobClient blobClient = containerClient.GetBlobClient($"{hash}");
+
+            // Download the media as a stream
+            var mediaStream = await blobClient.OpenReadAsync();
+
+            // Step 4: Return the file with the correct content type
+            return File(mediaStream, contentType);
         }
+        catch (RequestFailedException ex)
+        {
+            // Handle case where media does not exist or other Azure request failure
+            if (ex.Status == 404)
+            {
+                return NotFound("Media not found.");
+            }
 
-        // Download the photo from Blob Storage as a stream
-        var photoStream = await blobClient.OpenReadAsync();
-
-        // Return the photo to the client via the application
-        return File(photoStream, "image/png");
+            // Return a generic error message
+            return StatusCode(500, "An error occurred while retrieving the media.");
+        }
     }
-
 
     // Helper method to compute the SHA-256 hash of the media file
     private string ComputeHash(byte[] mediaBytes)
