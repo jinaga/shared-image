@@ -1,13 +1,13 @@
 # Shared Image Project
 
-This project is a .NET application that uses Azure Blob Storage for image handling. It demonstrates how to securely manage connection strings and other sensitive information using user secrets.
+This project is a .NET application that uses Azure Blob Storage for image handling and Azure Table Storage for metadata storage. It demonstrates how to securely manage connection strings and other sensitive information using user secrets.
 
 ## Prerequisites
 
 - [.NET 6.0 SDK](https://dotnet.microsoft.com/download/dotnet/6.0) or later
 - An Azure account with an active subscription
 
-## Setting up Azure Storage Account and Blob Container
+## Setting up Azure Storage Account, Blob Container, and Table
 
 1. Sign in to the [Azure portal](https://portal.azure.com/).
 2. Create a new storage account or use an existing one:
@@ -16,35 +16,49 @@ This project is a .NET application that uses Azure Blob Storage for image handli
    - Review and create the storage account.
 
 3. Once the storage account is created, navigate to it in the Azure portal.
+
+### Setting up Blob Container
+
 4. In the left menu, under "Data storage", click on "Containers".
 5. Click on "+ Container" to create a new container:
    - Enter a name for your container (e.g., "sharedimage").
    - Choose the appropriate access level (e.g., "Private" for most cases).
    - Click "Create".
 
-6. After creating the container, go back to the storage account overview.
-7. In the left menu, under "Security + networking", click on "Access keys".
-8. Copy the connection string for later use.
+### Setting up Table Storage
+
+6. In the left menu, under "Data storage", click on "Tables".
+7. Click on "+ Table" to create a new table:
+   - Enter a name for your table (e.g., "mediametadata").
+   - Click "OK".
+
+### Getting the Connection String
+
+8. After creating the container and table, go back to the storage account overview.
+9. In the left menu, under "Security + networking", click on "Access keys".
+10. Copy the connection string for later use.
 
 ## Configuring User Secrets
 
 1. Open a terminal in your project directory.
-2. Initialize user secrets for the project:
+2. Initialize user secrets for the project (if not already done):
    ```
    dotnet user-secrets init --project shared-image.csproj
    ```
 
-3. Set the Azure Blob Storage connection string:
+3. Set the Azure Blob Storage connection string and container name:
    ```
    dotnet user-secrets set "AzureBlobStorage:ConnectionString" "YOUR_CONNECTION_STRING" --project shared-image.csproj
-   ```
-   Replace `YOUR_CONNECTION_STRING` with the connection string you copied from the Azure portal.
-
-4. Set the container name:
-   ```
    dotnet user-secrets set "AzureBlobStorage:ContainerName" "YOUR_CONTAINER_NAME" --project shared-image.csproj
    ```
-   Replace `YOUR_CONTAINER_NAME` with the name of the container you created (e.g., "sharedimage").
+   Replace `YOUR_CONNECTION_STRING` with the connection string you copied from the Azure portal, and `YOUR_CONTAINER_NAME` with the name of the container you created (e.g., "sharedimage").
+
+4. Set the Azure Table Storage connection string and table name:
+   ```
+   dotnet user-secrets set "AzureTableStorage:ConnectionString" "YOUR_CONNECTION_STRING" --project shared-image.csproj
+   dotnet user-secrets set "AzureTableStorage:TableName" "YOUR_TABLE_NAME" --project shared-image.csproj
+   ```
+   Replace `YOUR_CONNECTION_STRING` with the same connection string you used for Blob Storage, and `YOUR_TABLE_NAME` with the name of the table you created (e.g., "mediametadata").
 
 ## Running the Application
 
@@ -63,7 +77,7 @@ This project is a .NET application that uses Azure Blob Storage for image handli
    dotnet run
    ```
 
-The application should now be running and correctly using the Azure Blob Storage configuration from your user secrets.
+The application should now be running and correctly using both Azure Blob Storage and Azure Table Storage configurations from your user secrets.
 
 ## Important Notes
 
@@ -75,7 +89,7 @@ The application should now be running and correctly using the Azure Blob Storage
 
 If you encounter any issues:
 - Ensure your Azure subscription is active and the storage account is properly set up.
-- Verify that the connection string and container name in your user secrets are correct.
+- Verify that the connection strings, container name, and table name in your user secrets are correct.
 - Check that the application can access the Azure services (no firewall or network issues).
 
 For more information on user secrets, refer to the [official Microsoft documentation](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets).

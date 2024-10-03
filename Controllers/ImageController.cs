@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using SharedImage.Entities;
+using Azure.Data.Tables;
 
 namespace SharedImage.Controllers;
 
@@ -12,10 +14,12 @@ namespace SharedImage.Controllers;
 public class ImageController : ControllerBase
 {
     private readonly BlobContainerClient containerClient;
+    private readonly TableClient tableClient;
 
-    public ImageController(BlobContainerClient containerClient)
+    public ImageController(BlobContainerClient containerClient, TableClient tableClient)
     {
         this.containerClient = containerClient;
+        this.tableClient = tableClient;
     }
 
     [HttpPost(Name = "UploadMedia")]
@@ -40,10 +44,18 @@ public class ImageController : ControllerBase
             stream.Seek(0, SeekOrigin.Begin);  // Reset the stream for uploading
             await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
 
-            // Track the media type (optional: store this info in a database if needed)
-            // For now, assume you're storing the media type along with the file.
+            // Step 4: Store metadata in Azure Table Storage
+            var mediaEntity = new MediaEntity
+            {
+                PartitionKey = "media",
+                RowKey = hash,
+                ContentType = file.ContentType,
+                UploadTime = DateTimeOffset.UtcNow
+            };
 
-            // Step 4: Return a 201 response with the URL using the computed hash
+            await tableClient.AddEntityAsync(mediaEntity);
+
+            // Step 5: Return a 201 response with the URL using the computed hash
             var mediaUrl = $"http://localhost:5279/image/{hash}";
             return Created(mediaUrl, new { url = mediaUrl, hash = hash });
         }

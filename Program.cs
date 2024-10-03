@@ -1,3 +1,4 @@
+using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using SharedImage.Config;
 
@@ -28,6 +29,19 @@ builder.Services.AddSingleton(x =>
     return new BlobContainerClient(
         azureBlobStorageConfig.ConnectionString,
         azureBlobStorageConfig.ContainerName);
+});
+
+// Register TableClient
+builder.Services.AddSingleton(x =>
+{
+    var azureTableStorageConfig = builder.Configuration.GetSection("AzureTableStorage").Get<AzureTableStorageConfig>();
+    if (azureTableStorageConfig is null)
+    {
+        throw new InvalidOperationException("AzureTableStorage configuration is missing.");
+    }
+    return new TableClient(
+        azureTableStorageConfig.ConnectionString,
+        azureTableStorageConfig.TableName);
 });
 
 var app = builder.Build();
