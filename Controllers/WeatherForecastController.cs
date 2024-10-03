@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace shared_image.Controllers;
+namespace SharedImage.Controllers;
 
 [ApiController]
 [Route("[controller]")]
