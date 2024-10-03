@@ -7,7 +7,7 @@ using Azure.Storage.Blobs.Models;
 
 namespace SharedImage.Controllers;
 
-[Route("[controller]")]
+[Route("image")]
 [ApiController]
 public class ImageController : ControllerBase
 {
@@ -35,7 +35,7 @@ public class ImageController : ControllerBase
             }
 
             // Step 3: Store the media in Blob storage
-            BlobClient blobClient = containerClient.GetBlobClient($"{hash}");
+            BlobClient blobClient = containerClient.GetBlobClient(hash);
 
             stream.Seek(0, SeekOrigin.Begin);  // Reset the stream for uploading
             await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
@@ -48,6 +48,24 @@ public class ImageController : ControllerBase
             return Created(mediaUrl, new { url = mediaUrl, hash = hash });
         }
     }
+
+    [HttpGet("{hash}")]
+    public async Task<IActionResult> GetMedia(string hash)
+    {
+        // Retrieve the photo from Azure Blob Storage
+        BlobClient blobClient = containerClient.GetBlobClient(hash);
+        if (!await blobClient.ExistsAsync())
+        {
+            return NotFound();
+        }
+
+        // Download the photo from Blob Storage as a stream
+        var photoStream = await blobClient.OpenReadAsync();
+
+        // Return the photo to the client via the application
+        return File(photoStream, "image/png");
+    }
+
 
     // Helper method to compute the SHA-256 hash of the media file
     private string ComputeHash(byte[] mediaBytes)
