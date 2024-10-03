@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>shared_image</RootNamespace>
+    <UserSecretsId>bdae19f6-a905-42bd-b435-f30d453dddf8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
