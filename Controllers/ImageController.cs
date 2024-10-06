@@ -1,29 +1,25 @@
-using System.Security.Cryptography;
-
-using Microsoft.AspNetCore.Mvc;
-
+﻿using Azure;
+using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Microsoft.AspNetCore.Mvc;
 using SharedImage.Entities;
-using Azure.Data.Tables;
-using Azure;
+using System.Security.Cryptography;
 
 namespace SharedImage.Controllers;
-
 [Route("image")]
-[ApiController]
-public class ImageController : ControllerBase
+public class ImageController : Controller
 {
-    private readonly BlobContainerClient containerClient;
-    private readonly TableClient tableClient;
+    private readonly BlobContainerClient _containerClient;
+    private readonly TableClient _tableClient;
 
     public ImageController(BlobContainerClient containerClient, TableClient tableClient)
     {
-        this.containerClient = containerClient;
-        this.tableClient = tableClient;
+        _containerClient = containerClient;
+        _tableClient = tableClient;
     }
 
-    [HttpPost(Name = "UploadMedia")]
+    [HttpPost()]
     public async Task<IActionResult> UploadMedia(IFormFile file)
     {
         // Step 1: Compute the hash of the incoming media
@@ -40,7 +36,7 @@ public class ImageController : ControllerBase
             }
 
             // Step 3: Store the media in Blob storage
-            BlobClient blobClient = containerClient.GetBlobClient(hash);
+            BlobClient blobClient = _containerClient.GetBlobClient(hash);
 
             stream.Seek(0, SeekOrigin.Begin);  // Reset the stream for uploading
             await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
@@ -54,27 +50,28 @@ public class ImageController : ControllerBase
                 UploadTime = DateTimeOffset.UtcNow
             };
 
-            await tableClient.AddEntityAsync(mediaEntity);
+            await _tableClient.AddEntityAsync(mediaEntity);
 
             // Step 5: Return a 201 response with the URL using the computed hash
-            var mediaUrl = $"http://localhost:5279/image/{hash}";
+            var mediaUrl = $"https://localhost:7021/image/{hash}";
             return Created(mediaUrl, new { url = mediaUrl, hash = hash });
         }
     }
 
     [HttpGet("{hash}")]
-    public async Task<IActionResult> GetMedia(string hash)
+    public async Task<IActionResult> DownloadMedia(string hash)
     {
         try
         {
-            // Step 1: Try to retrieve the entity with the provided hash as the RowKey
-            var mediaEntity = await tableClient.GetEntityAsync<MediaEntity>("media", hash);
+            // Step 1: Retrieve the media metadata from Azure Table Storage
+            // Try to retrieve the entity with the provided hash as the RowKey
+            var mediaEntity = await _tableClient.GetEntityAsync<MediaEntity>("media", hash);
 
             // Step 2: Fetch the media content type from the table storage entity
             var contentType = mediaEntity.Value.ContentType;
 
             // Step 3: Retrieve the media from Azure Blob Storage
-            BlobClient blobClient = containerClient.GetBlobClient($"{hash}");
+            BlobClient blobClient = _containerClient.GetBlobClient($"{hash}");
 
             // Download the media as a stream
             var mediaStream = await blobClient.OpenReadAsync();
@@ -94,6 +91,8 @@ public class ImageController : ControllerBase
             return StatusCode(500, "An error occurred while retrieving the media.");
         }
     }
+
+
 
     // Helper method to compute the SHA-256 hash of the media file
     private string ComputeHash(byte[] mediaBytes)

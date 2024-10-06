@@ -1,73 +1,80 @@
-# Shared Image Project
+# SharedImage Project
 
-This project is a .NET application that uses Azure Blob Storage for image handling and Azure Table Storage for metadata storage. It demonstrates how to securely manage connection strings and other sensitive information using user secrets.
+This project uses Azure Blob Storage to store images and Azure Table Storage to manage metadata. Follow these steps to set up the necessary Azure services and configure the application using User Secrets for sensitive information.
 
 ## Prerequisites
 
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
-- An Azure account with an active subscription
+- An Azure account. If you don't have one, you can create a free account at [https://azure.com/free](https://azure.com/free).
+- .NET 8.0 SDK or later installed on your development machine.
 
-## Setting up Azure Storage Account, Blob Container, and Table
+## Setting up Azure Services
 
-1. Sign in to the [Azure portal](https://portal.azure.com/).
-2. Create a new storage account or use an existing one:
-   - If creating a new account, click on "Create a resource" > "Storage" > "Storage account".
-   - Choose your subscription, resource group, storage account name, and region.
-   - Review and create the storage account.
+1. Create an Azure Storage account:
+   - Sign in to the [Azure portal](https://portal.azure.com/).
+   - Click on "Create a resource" and search for "Storage account".
+   - Click "Create" and fill in the required information:
+     - Choose a unique name for your storage account.
+     - Select the appropriate subscription, resource group, and region.
+     - For performance, choose "Standard".
+     - For redundancy, choose "Locally-redundant storage (LRS)" for development (you can change this later for production).
+   - Click "Review + create", then "Create" to create the storage account.
 
-3. Once the storage account is created, navigate to it in the Azure portal.
-
-### Setting up Blob Container
-
-4. In the left menu, under "Data storage", click on "Containers".
-5. Click on "+ Container" to create a new container:
-   - Enter a name for your container (e.g., "sharedimage").
-   - Choose the appropriate access level (e.g., "Private" for most cases).
+2. Create a Blob Container:
+   - Once the storage account is created, go to its overview page.
+   - In the left menu, under "Data storage", click on "Containers".
+   - Click "+ Container" at the top.
+   - Give your container a name (e.g., "media-container").
+   - Set the public access level to "Private (no anonymous access)".
    - Click "Create".
 
-### Setting up Table Storage
+3. Create an Azure Table:
+   - In the storage account overview, click on "Tables" in the left menu.
+   - Click "+ Table" at the top.
+   - Give your table a name (e.g., "MediaMetadata").
+   - Click "OK" to create the table.
 
-6. In the left menu, under "Data storage", click on "Tables".
-7. Click on "+ Table" to create a new table:
-   - Enter a name for your table (e.g., "mediametadata").
-   - Click "OK".
+4. Get the Connection String:
+   - In the storage account overview, click on "Access keys" in the left menu.
+   - Under "key1", click "Show" next to the "Connection string".
+   - Copy this connection string; you'll need it for the application configuration.
 
-### Getting the Connection String
+## Configuring the Application with User Secrets
 
-8. After creating the container and table, go back to the storage account overview.
-9. In the left menu, under "Security + networking", click on "Access keys".
-10. Copy the connection string for later use.
+We use User Secrets to store sensitive information like connection strings. This keeps the sensitive data out of source control.
 
-## Configuring User Secrets
-
-1. Open a terminal in your project directory.
-2. Initialize user secrets for the project (if not already done):
+1. Initialize User Secrets for the project (if not already done):
    ```
-   dotnet user-secrets init --project shared-image.csproj
+   dotnet user-secrets init
    ```
 
-3. Set the Azure Blob Storage connection string and container name:
+2. Add the Azure Storage connection string to User Secrets:
    ```
-   dotnet user-secrets set "AzureBlobStorage:ConnectionString" "YOUR_CONNECTION_STRING" --project shared-image.csproj
-   dotnet user-secrets set "AzureBlobStorage:ContainerName" "YOUR_CONTAINER_NAME" --project shared-image.csproj
+   dotnet user-secrets set "AzureStorage:ConnectionString" "your-connection-string-here"
    ```
-   Replace `YOUR_CONNECTION_STRING` with the connection string you copied from the Azure portal, and `YOUR_CONTAINER_NAME` with the name of the container you created (e.g., "sharedimage").
 
-4. Set the Azure Table Storage connection string and table name:
+3. Add the container name to User Secrets:
    ```
-   dotnet user-secrets set "AzureTableStorage:ConnectionString" "YOUR_CONNECTION_STRING" --project shared-image.csproj
-   dotnet user-secrets set "AzureTableStorage:TableName" "YOUR_TABLE_NAME" --project shared-image.csproj
+   dotnet user-secrets set "AzureStorage:ContainerName" "your-container-name-here"
    ```
-   Replace `YOUR_CONNECTION_STRING` with the same connection string you used for Blob Storage, and `YOUR_TABLE_NAME` with the name of the table you created (e.g., "mediametadata").
+
+4. Add the table name to User Secrets:
+   ```
+   dotnet user-secrets set "AzureStorage:TableName" "your-table-name-here"
+   ```
+
+5. Verify the secrets are set correctly:
+   ```
+   dotnet user-secrets list
+   ```
 
 ## Running the Application
 
-1. Ensure all dependencies are installed:
+1. Restore the NuGet packages:
    ```
    dotnet restore
    ```
 
-2. Build the project:
+2. Build the application:
    ```
    dotnet build
    ```
@@ -77,19 +84,21 @@ This project is a .NET application that uses Azure Blob Storage for image handli
    dotnet run
    ```
 
-The application should now be running and correctly using both Azure Blob Storage and Azure Table Storage configurations from your user secrets.
+The application should now be configured to use your Azure Blob Storage account for storing images and Azure Table Storage for storing metadata, with sensitive information stored securely in User Secrets.
 
-## Important Notes
+## Testing
 
-- User secrets are for development purposes only. For production, use a more robust secret management system like Azure Key Vault.
-- Never commit user secrets or connection strings to version control.
-- If you need to share secrets with other developers, do so securely and not through version control.
+You can test the image upload functionality by sending a POST request to the `/image` endpoint with an image file. The application will store the image in the configured Azure Blob Storage container, save metadata to the Azure Table, and return a URL for accessing the image.
 
 ## Troubleshooting
 
-If you encounter any issues:
-- Ensure your Azure subscription is active and the storage account is properly set up.
-- Verify that the connection strings, container name, and table name in your user secrets are correct.
-- Check that the application can access the Azure services (no firewall or network issues).
+- If you encounter any "Access Denied" errors, double-check that your connection string in User Secrets is correct and that the storage account, container, and table are properly set up.
+- Ensure that the Azure Storage Emulator is not running if you're trying to connect to an actual Azure Storage account.
+- Check that the required NuGet packages (Azure.Storage.Blobs, Azure.Data.Tables, and Microsoft.Extensions.Azure) are properly installed and restored.
+- Verify that User Secrets are correctly set up and accessible in your development environment.
 
-For more information on user secrets, refer to the [official Microsoft documentation](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets).
+For any other issues, refer to the [Azure Blob Storage documentation](https://docs.microsoft.com/en-us/azure/storage/blobs/) or [Azure Table Storage documentation](https://docs.microsoft.com/en-us/azure/storage/tables/) or seek assistance from the development team.
+
+## Security Note
+
+Remember that User Secrets are for development purposes only. For production environments, use Azure Key Vault or other secure methods to manage sensitive configuration data.

@@ -1,47 +1,33 @@
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
-using SharedImage.Config;
+using Microsoft.Extensions.Azure;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add configuration sources
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true);
-if (builder.Environment.IsDevelopment())
-{
-    builder.Configuration.AddUserSecrets<Program>();
-}
-builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register BlobContainerClient
-builder.Services.AddSingleton(x =>
+// Configure Azure Blob Storage and Table Storage
+builder.Services.AddAzureClients(clientBuilder =>
 {
-    var azureBlobStorageConfig = builder.Configuration.GetSection("AzureBlobStorage").Get<AzureBlobStorageConfig>();
-    if (azureBlobStorageConfig is null)
-    {
-        throw new InvalidOperationException("AzureBlobStorage configuration is missing.");
-    }
-    return new BlobContainerClient(
-        azureBlobStorageConfig.ConnectionString,
-        azureBlobStorageConfig.ContainerName);
+    clientBuilder.AddBlobServiceClient(builder.Configuration["AzureStorage:ConnectionString"]);
+    clientBuilder.AddTableServiceClient(builder.Configuration["AzureStorage:ConnectionString"]);
 });
 
-// Register TableClient
-builder.Services.AddSingleton(x =>
+builder.Services.AddSingleton(sp =>
 {
-    var azureTableStorageConfig = builder.Configuration.GetSection("AzureTableStorage").Get<AzureTableStorageConfig>();
-    if (azureTableStorageConfig is null)
-    {
-        throw new InvalidOperationException("AzureTableStorage configuration is missing.");
-    }
-    return new TableClient(
-        azureTableStorageConfig.ConnectionString,
-        azureTableStorageConfig.TableName);
+    var blobServiceClient = sp.GetRequiredService<BlobServiceClient>();
+    var containerName = builder.Configuration["AzureStorage:ContainerName"];
+    return blobServiceClient.GetBlobContainerClient(containerName);
+});
+
+builder.Services.AddSingleton(sp =>
+{
+    var tableServiceClient = sp.GetRequiredService<TableServiceClient>();
+    var tableName = builder.Configuration["AzureStorage:TableName"];
+    return tableServiceClient.GetTableClient(tableName);
 });
 
 var app = builder.Build();
