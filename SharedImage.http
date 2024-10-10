@@ -1,6 +1,11 @@
-@SharedImage_HostAddress = http://localhost:5249
+@SharedImage_HostAddress = https://mlpsharedimage.azurewebsites.net
 
-GET {{SharedImage_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{SharedImage_HostAddress}}/image
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-###
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="Avatar_Small.jpg"
+Content-Type: image/jpeg
+
+< /Users/michaelperry/Library/CloudStorage/OneDrive-Personal/Pictures/Avatar_Small.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
