@@ -22,6 +22,11 @@ public class ImageController : Controller
     [HttpPost()]
     public async Task<IActionResult> UploadMedia(IFormFile file)
     {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
         // Step 1: Compute the hash of the incoming media
         using (var stream = new MemoryStream())
         {
@@ -38,19 +43,22 @@ public class ImageController : Controller
             // Step 3: Store the media in Blob storage
             BlobClient blobClient = _containerClient.GetBlobClient(hash);
 
-            stream.Seek(0, SeekOrigin.Begin);  // Reset the stream for uploading
-            await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
-
-            // Step 4: Store metadata in Azure Table Storage
-            var mediaEntity = new MediaEntity
+            if (!blobClient.Exists())
             {
-                PartitionKey = "media",
-                RowKey = hash,
-                ContentType = file.ContentType,
-                UploadTime = DateTimeOffset.UtcNow
-            };
+                stream.Seek(0, SeekOrigin.Begin);  // Reset the stream for uploading
+                await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = file.ContentType });
 
-            await _tableClient.AddEntityAsync(mediaEntity);
+                // Step 4: Store metadata in Azure Table Storage
+                var mediaEntity = new MediaEntity
+                {
+                    PartitionKey = "media",
+                    RowKey = hash,
+                    ContentType = file.ContentType,
+                    UploadTime = DateTimeOffset.UtcNow
+                };
+
+                await _tableClient.AddEntityAsync(mediaEntity);
+            }
 
             // Step 5: Return a 201 response with the URL using the computed hash
             var mediaUrl = Url.Action("DownloadMedia", "Image", new { hash = hash }, Request.Scheme);
