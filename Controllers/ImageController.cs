@@ -53,7 +53,7 @@ public class ImageController : Controller
             await _tableClient.AddEntityAsync(mediaEntity);
 
             // Step 5: Return a 201 response with the URL using the computed hash
-            var mediaUrl = $"https://localhost:7021/image/{hash}";
+            var mediaUrl = Url.Action("DownloadMedia", "Image", new { hash = hash }, Request.Scheme);
             return Created(mediaUrl, new { url = mediaUrl, hash = hash });
         }
     }
